@@ -1,122 +1,66 @@
-import { useState, useEffect } from "react";
-import { fetchApps } from "./api/apps";
-import AppCard from "./components/AppCard/AppCard";
-import { App, Filters } from "./types";
-import styles from "./App.module.css";
+import { useState, useEffect } from 'react';
+import { fetchApps } from './api/apps';
+import AppCard from './components/AppCard/AppCard';
+import { App as AppType, Filters } from './types';
+import styles from './App.module.css';
 
 export default function App() {
-  const [apps, setApps] = useState<App[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    category: "",
-  });
+  const [apps, setApps] = useState<AppType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<Filters>({ search: '', category: '' });
 
   useEffect(() => {
-    const loadApps = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchApps();
-        setApps(data);
-        setError(null);
-      } catch {
-        setError("Не удалось загрузить приложения");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadApps();
+    fetchApps().then(data => {
+      setApps(data);
+      setLoading(false);
+    });
   }, []);
 
-  const categories = ["Все", ...new Set(apps.map((app) => app.category))];
+  const categories = ["Все", "Мессенджеры", "Соцсети", "Карты", "Почта"];
 
-  const filteredApps = apps.filter((app) => {
-    const matchesSearch =
-      filters.search === "" ||
-      app.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      app.description.toLowerCase().includes(filters.search.toLowerCase());
-
-    const matchesCategory =
-      filters.category === "" || filters.category === "Все"
-        ? true
-        : app.category === filters.category;
-
-    return matchesSearch && matchesCategory;
+  const filteredApps = apps.filter(app => {
+    const matchSearch = filters.search === '' || app.title.toLowerCase().includes(filters.search.toLowerCase());
+    const matchCategory = filters.category === '' || filters.category === 'Все' || app.category === filters.category;
+    return matchSearch && matchCategory;
   });
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, search: e.target.value });
-  };
-
-  const handleCategoryChange = (category: string) => {
-    setFilters({ ...filters, category });
-  };
-
-  if (loading) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.loading}>
-          <p>⏳ Загрузка приложений...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.error}>
-          <p>⚠️ Ошибка</p>
-          <p>{error}</p>
-        </div>
-      </main>
-    );
-  }
+  if (loading) return <div className={styles.loading}>Загрузка...</div>;
 
   return (
     <main className={styles.page}>
       <header className={styles.hero}>
         <h1 className={styles.title}>MiniStore</h1>
-        <p className={styles.description}>
-          Витрина учебных приложений для повседневных задач
-        </p>
+        <p className={styles.description}>Витрина приложений</p>
       </header>
 
       <div className={styles.controls}>
         <input
           type="text"
-          placeholder="🔍 Поиск приложений..."
+          placeholder="Поиск..."
           value={filters.search}
-          onChange={handleSearchChange}
+          onChange={e => setFilters({ ...filters, search: e.target.value })}
           className={styles.searchInput}
         />
 
         <div className={styles.categories}>
-          {categories.map((category) => (
+          {categories.map(cat => (
             <button
-              key={category}
-              onClick={() => handleCategoryChange(category)}
+              key={cat}
+              onClick={() => setFilters({ ...filters, category: cat })}
               className={`${styles.categoryButton} ${
-                filters.category === category ||
-                (category === "Все" && filters.category === "")
-                  ? styles.active
-                  : ""
+                filters.category === cat || (cat === 'Все' && filters.category === '') ? styles.active : ''
               }`}
             >
-              {category}
+              {cat}
             </button>
           ))}
         </div>
       </div>
 
       {filteredApps.length > 0 ? (
-        <section className={styles.appsGrid}>
-          {filteredApps.map((app) => (
-            <AppCard key={app.id} app={app} />
-          ))}
-        </section>
+        <div className={styles.appsGrid}>
+          {filteredApps.map(app => <AppCard key={app.id} app={app} />)}
+        </div>
       ) : (
         <div className={styles.emptyState}>
           <p>😕 Ничего не найдено</p>
